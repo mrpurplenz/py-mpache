@@ -16,18 +16,18 @@ along with py-sonic.  If not, see <http://www.gnu.org/licenses/>
 """
 
 from base64 import b64encode
-from urllib import urlencode
+from urllib.parse import urlencode
 from .errors import *
 from pprint import pprint
-from cStringIO import StringIO
+from io import StringIO
 from netrc import netrc
-import json, urllib2, httplib, logging, socket, ssl, sys
+import json, urllib.request, urllib.error, urllib.parse, http.client, logging, socket, ssl, sys
 
 API_VERSION = '1.13.0'
 
 logger = logging.getLogger(__name__)
 
-class HTTPSConnectionChain(httplib.HTTPSConnection):
+class HTTPSConnectionChain(http.client.HTTPSConnection):
     _preferred_ssl_protos = sorted([ p for p in dir(ssl)
         if p.startswith('PROTOCOL_') ], reverse=True)
     _ssl_working_proto = None
@@ -64,14 +64,14 @@ class HTTPSConnectionChain(httplib.HTTPSConnection):
                 break
 
 
-class HTTPSHandlerChain(urllib2.HTTPSHandler):
+class HTTPSHandlerChain(urllib.request.HTTPSHandler):
     def https_open(self, req):
         return self.do_open(HTTPSConnectionChain, req)
 
 # install opener
-urllib2.install_opener(urllib2.build_opener(HTTPSHandlerChain()))
+urllib.request.install_opener(urllib.request.build_opener(HTTPSHandlerChain()))
 
-class PysHTTPRedirectHandler(urllib2.HTTPRedirectHandler):
+class PysHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
     """
     This class is used to override the default behavior of the
     HTTPRedirectHandler, which does *not* redirect POST data
@@ -81,19 +81,19 @@ class PysHTTPRedirectHandler(urllib2.HTTPRedirectHandler):
         if (code in (301, 302, 303, 307) and m in ("GET", "HEAD")
             or code in (301, 302, 303) and m == "POST"):
             newurl = newurl.replace(' ', '%20')
-            newheaders = dict((k, v) for k, v in req.headers.items()
+            newheaders = dict((k, v) for k, v in list(req.headers.items())
                 if k.lower() not in ("content-length", "content-type")
             )
             data = None
             if req.has_data():
                 data = req.get_data()
-            return urllib2.Request(newurl,
+            return urllib.request.Request(newurl,
                            data=data,
                            headers=newheaders,
                            origin_req_host=req.get_origin_req_host(),
                            unverifiable=True)
         else:
-            raise urllib2.HTTPError(req.get_full_url(), code, msg, headers, fp)
+            raise urllib.error.HTTPError(req.get_full_url(), code, msg, headers, fp)
 
 class Connection(object):
     def __init__(self, baseUrl, username=None, password=None, port=4040,
@@ -1940,7 +1940,7 @@ class Connection(object):
         req = self._getRequest(viewName, q)
         try:
             res = self._doBinReq(req)
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             # Avatar is not set/does not exist, return None
             return None
         if isinstance(res, dict):
@@ -2092,7 +2092,7 @@ class Connection(object):
         req = self._getRequest(viewName, q)
         try:
             res = self._doBinReq(req)
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             # Avatar is not set/does not exist, return None
             return None
         if isinstance(res, dict):
@@ -2470,7 +2470,7 @@ class Connection(object):
 
         url = '%s:%d/%s/%s?%s' % (self._baseUrl, self._port,
             self._separateServerPath(), viewName, methodName)
-        req = urllib2.Request(url)
+        req = urllib.request.Request(url)
         res = self._opener.open(req)
         res_msg = res.msg.lower()
         return res_msg == 'ok'
@@ -2485,7 +2485,7 @@ class Connection(object):
         if sys.version_info[:3] >= (2, 7, 9) and self._insecure:
             https_chain = HTTPSHandlerChain(
                 context=ssl._create_unverified_context())
-        opener = urllib2.build_opener(PysHTTPRedirectHandler, https_chain)
+        opener = urllib.request.build_opener(PysHTTPRedirectHandler, https_chain)
         opener.addheaders = [('Authorization', 'Basic %s' % creds)]
         return opener
 
@@ -2503,7 +2503,7 @@ class Connection(object):
         qstring.update(query)
         url = '%s:%d/%s/%s' % (self._baseUrl, self._port, self._serverPath,
             viewName)
-        req = urllib2.Request(url, urlencode(qstring))
+        req = urllib.request.Request(url, urlencode(qstring))
         return req
 
     def _getRequestWithList(self, viewName, listName, alist, query={}):
@@ -2519,7 +2519,7 @@ class Connection(object):
         data.write(urlencode(qstring))
         for i in alist:
             data.write('&%s' % urlencode({listName: i}))
-        req = urllib2.Request(url, data.getvalue())
+        req = urllib.request.Request(url, data.getvalue())
         return req
 
     def _getRequestWithLists(self, viewName, listMap, query={}):
@@ -2538,10 +2538,10 @@ class Connection(object):
             viewName)
         data = StringIO()
         data.write(urlencode(qstring))
-        for k, l in listMap.iteritems():
+        for k, l in listMap.items():
             for i in l:
                 data.write('&%s' % urlencode({k: i}))
-        req = urllib2.Request(url, data.getvalue())
+        req = urllib.request.Request(url, data.getvalue())
         return req
 
     def _doInfoReq(self, req):
@@ -2592,7 +2592,7 @@ class Connection(object):
         """
         separate REST portion of URL from base server path.
         """
-        return urllib2.splithost(self._serverPath)[1].split('/')[0]
+        return urllib.parse.splithost(self._serverPath)[1].split('/')[0]
 
     def _fixLastModified(self, data):
         """
@@ -2604,7 +2604,7 @@ class Connection(object):
         if isinstance(data, dict):
             for k, v in data.items():
                 if k == 'lastModified':
-                    data[k] = long(v) / 1000.0
+                    data[k] = int(v) / 1000.0
                     return
                 elif isinstance(v, (tuple, list, dict)):
                     return self._fixLastModified(v)

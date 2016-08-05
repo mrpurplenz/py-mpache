@@ -27,6 +27,6 @@ print conn.ping()
 
 """
 
-from connection import *
+from .connection import *
 
 __version__ = '0.5.0'
