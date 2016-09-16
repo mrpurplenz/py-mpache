@@ -25,16 +25,10 @@ setup(name='py-mpache',
     author='mr purple',
     author_email='mrpurplenz@gmail.com',
     url='https://github.com/mrpurplenz/py-mpache',
-    download_url - 'https://github.com/mrpurplenz/py-mpache/tarball/0.1',
-    description='A python wrapper library for the Ampache XML API.  '
-        'http://ampache.org',
-    long_description='This is a basic wrapper library for the Ampache '
-        'XML API. This will allow you to connect to your server and retrieve '
-        'information and have it returned in basic Python types.',
+    download_url = 'https://github.com/mrpurplenz/py-mpache/tarball/0.1',
     packages=['libmpache'],
     package_dir={'libmpache': 'libmpache'},
     classifiers=[
-        'Development Status :: 1 - Alpha',
         'Intended Audience :: System Administrators',
         'Intended Audience :: Information Technology',
         'License :: OSI Approved :: GNU General Public License (GPL)',

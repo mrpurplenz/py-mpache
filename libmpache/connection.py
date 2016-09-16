@@ -264,7 +264,7 @@ class Connection(object):
 
     # API methods
     def ping(self):
-        print "PING"
+        #print "PING"
 	"""
         since: 1.0.0
 
@@ -1675,21 +1675,26 @@ class Connection(object):
         """
 	getres = self.__get('artists')
 	itemcount=0
-	for item in getres:
-	    #print item
-	    itemcount+=1
-	    if itemcount>250:
-		if itemcount<260:
-			print "ITEM"
-			print item
-	return getres
-        #methodName = 'getArtists'
-        #viewName = '%s.view' % methodName
-
-        #req = self._getRequest(viewName)
-        #res = self._doInfoReq(req)
-        #self._checkStatus(res)
-        #return res
+	resultdict={}
+	indexlist=[]
+        for item in getres:
+	    artist_id=int(item['@id'])
+            artist_details=item['artist']
+            for details in artist_details:
+                #print details
+                if 'name' in details:
+                    artist_name = details['child']
+                    artist_letter = artist_name[:1]
+		if 'albums' in details:
+	            artist_albumCount = int(details['child'])
+	    indexlist.append({'artist': {u'albumCount': artist_albumCount, u'coverArt': u'ar-'+str(artist_id), u'id': artist_id, u'name': artist_name},u'name':artist_letter})
+        artistsdict={}
+        artistsdict['index']=indexlist
+        resultdict['artists']=artistsdict
+	resultdict['status']='ok'
+        resultdict['version']='1.0.0'
+        resultdict['xmlns']='http://ampache.org/xml-api'
+        return resultdict
 
     def getArtist(self, id):
         """
@@ -1780,16 +1785,47 @@ class Connection(object):
             u'version': u'1.8.0',
             u'xmlns': u'http://subsonic.org/restapi'}
         """
-        methodName = 'getAlbum'
-        viewName = '%s.view' % methodName
+        getres = self.__get('album',id)
+        itemcount=0
+        resultdict={}
+	albumdict={}
+        indexlist=[]
+        for item in getres:
+	    #print item
+            album_id=id
+            details=item['album']
+            for details in details:
+                #print details
+                if 'name' in details:
+                    album_name = details['child']
+		if 'artist' in details:
+		    artist_name = details['child']
+                    artist_id =  details['@id']
+		if 'year' in details:
+		    year =  details['child']
+		if 'tracks' in details:
+		    songCount = details['child']
 
-        q = self._getQueryDict({'id': id})
+                #    artist_letter = artist_name[:1]
+                #if 'albums' in details:
+                #    artist_albumCount = int(details['child'])
+            #indexlist.append({'artist': {u'albumCount': artist_albumCount, u'coverArt': u'ar-'+str(artist_id), u'id': artist_id, u'name': artist_name},u'name':artist_letter})
+        #artistsdict={}
+        #artistsdict['index']=indexlist
+        albumdict['artist'] 	= artist_name
+        albumdict['artistId'] 	= int(artist_id)
+        albumdict['coverArt'] 	= 'al-'+str(album_id)
+        albumdict['created'] 	= '1974-01-00T00:00:01'
+        albumdict['duration'] 	= 0
+        albumdict['id'] 	= album_id
 
-        req = self._getRequest(viewName, q)
-        res = self._doInfoReq(req)
-        self._checkStatus(res)
-        return res
 
+        resultdict['album']=albumdict
+        #resultdict['status']='ok'
+        #resultdict['version']='1.0.0'
+        #resultdict['xmlns']='http://ampache.org/xml-api'
+        return resultdict
+        
     def getSong(self, id):
         """
         since 1.8.0
@@ -2604,7 +2640,7 @@ class Connection(object):
         Automatically adds {auth: <auth>}
         """
         handshaking=False
-        print "API CALL"
+        #print "API CALL"
 	if 'action' in values:
 	    if values['action']=='handshake':
 		handshaking = True
@@ -2847,7 +2883,7 @@ class Connection(object):
         Attempt to authenticate to Ampache.
         Returns auth data if successful and False if not.
         """
-	print "AUTHENTICATE"
+	#print "AUTHENTICATE2"
         # generate the necessary information for the authentication
         timestamp = int(time.time())
         password = hashlib.sha256(self.password).hexdigest()
